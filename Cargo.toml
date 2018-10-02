@@ -1,0 +1,6 @@
+[package]
+name = "crustopals"
+version = "0.1.0"
+authors = ["jackvnimble <jack.wilson.v@gmail.com>"]
+
+[dependencies]
