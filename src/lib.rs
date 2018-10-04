@@ -1,5 +1,4 @@
-pub mod crustopals {
-  extern crate base64;
-  extern crate hex;
+#[macro_use]
+extern crate lazy_static;
 
 pub mod crustopals;

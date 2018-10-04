@@ -1,6 +1,8 @@
 extern crate base64;
 extern crate hex;
 
+pub mod freq_analysis;
+
 // TODO: create struct for hex so as to be distinct from String.
 
 pub fn hex_to_b64(hex: &str) -> String {
@@ -10,9 +12,6 @@ pub fn hex_to_b64(hex: &str) -> String {
 
 pub fn xor_string(msg: &str, key: &str) -> String {
   let key = resize_key(key, msg.len());
-  // let hex_msg = hex::encode(msg);
-  // let hex_key = hex::encode(key);
-  // xor_hex(&hex_msg, &hex_key)
   let xord_bytes = xor_bytes(String::from(msg).into_bytes(), key.into_bytes());
   xord_bytes.into_iter().map(|b| b as char).collect()
 }
