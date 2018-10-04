@@ -8,12 +8,13 @@ pub fn solve_single_byte_xor(xord_str: &str) -> String {
   let result: (f32, String, String) = (0u8..128)
     .into_iter()
     .map(|u8num| (u8num as char).to_string())
-    .map(|key| (tools::xor_string(xord_str, &key), key)) // ORDER MATTERS HERE?? hmm
+    .map(|key| (tools::xor_string(xord_str, &key), key))
     .map(|(pt, key)| (freq_analysis::english_distance(&pt), pt, key))
-    .min_by(|(d1, _, _), (d2, _, _)| d1.partial_cmp(d2).unwrap_or(Ordering::Equal))
-    .unwrap();
+    .min_by(|(d1, _, _), (d2, _, _)| {
+      d1.partial_cmp(d2).unwrap_or(Ordering::Equal)
+    }).unwrap();
 
-  String::from(&*result.1) // WAT
+  result.1
 }
 
 #[cfg(test)]

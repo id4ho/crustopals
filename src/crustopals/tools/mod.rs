@@ -12,7 +12,7 @@ pub fn hex_to_b64(hex: &str) -> String {
 
 pub fn xor_string(msg: &str, key: &str) -> String {
   let key = resize_key(key, msg.len());
-  let xord_bytes = xor_bytes(String::from(msg).into_bytes(), key.into_bytes());
+  let xord_bytes = xor_bytes(String::from(msg).as_bytes(), key.as_bytes());
   xord_bytes.into_iter().map(|b| b as char).collect()
 }
 
@@ -20,11 +20,11 @@ pub fn xor_hex(hex_msg: &str, hex_key: &str) -> String {
   let hex_key = resize_key(hex_key, hex_msg.len());
   let message_bytes = hex::decode(hex_msg).expect("Message is invalid hex");
   let key_bytes = hex::decode(hex_key).expect("Key is invalid hex");
-  let xord_bytes = xor_bytes(message_bytes, key_bytes);
+  let xord_bytes = xor_bytes(&message_bytes, &key_bytes);
   hex::encode(xord_bytes)
 }
 
-fn xor_bytes(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
+fn xor_bytes(a: &[u8], b: &[u8]) -> Vec<u8> {
   if a.len() != b.len() {
     panic!("Byte arrays not the same length!")
   };
