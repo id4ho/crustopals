@@ -2,7 +2,6 @@ extern crate hex;
 
 use crustopals::tools::*;
 use crustopals::*;
-use std::borrow::Cow;
 use std::cmp::Ordering;
 
 // TODO: convert to returning a result for problem 4 iteration purposes
