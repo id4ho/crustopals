@@ -6,27 +6,29 @@ use std::cmp::Ordering;
 
 // TODO: convert to returning a result for problem 4 iteration purposes
 
-pub fn solve_single_byte_xor(hex_str: &str) -> (f32, String) {
+pub fn solve_single_byte_xor(hex_str: &str) -> (f32, String, String) {
   let hex_results = generate_single_byte_hex_xors(hex_str);
 
-  let mut english_results: Vec<String> = vec![];
-  for hex in hex_results {
+  let mut english_results: Vec<(String, String)> = vec![];
+  for (hex, hex_key) in hex_results {
     let decoded_hex = hex::decode(hex).unwrap();
-    english_results.push(String::from_utf8_lossy(&decoded_hex).to_string());
+    let english_result = String::from_utf8_lossy(&decoded_hex).to_string();
+    english_results.push((english_result, hex_key));
   }
 
   english_results
     .into_iter()
-    .map(|pt| (freq_analysis::english_distance(&pt), pt))
-    .min_by(|(d1, _), (d2, _)| d1.partial_cmp(d2).unwrap_or(Ordering::Equal))
-    .unwrap()
+    .map(|(pt, hex_key)| (freq_analysis::english_distance(&pt), pt, hex_key))
+    .min_by(|(d1, _, _), (d2, _, _)| {
+      d1.partial_cmp(d2).unwrap_or(Ordering::Equal)
+    }).unwrap()
 }
 
-fn generate_single_byte_hex_xors(hex_str: &str) -> Vec<String> {
+fn generate_single_byte_hex_xors(hex_str: &str) -> Vec<(String, String)> {
   (0..256)
     .into_iter()
     .map(|byte| format!("{:x}", byte))
-    .map(|hex_key| tools::xor_hex(hex_str, &hex_key))
+    .map(|hex_key| (tools::xor_hex(hex_str, &hex_key), hex_key))
     .collect()
 }
 
