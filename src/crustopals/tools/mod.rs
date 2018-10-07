@@ -28,7 +28,15 @@ pub fn xor_hex(hex_msg: &str, hex_key: &str) -> String {
   hex::encode(xord_bytes)
 }
 
-fn xor_bytes(a: &[u8], b: &[u8]) -> Vec<u8> {
+pub fn hamming_distance(bytes1: &[u8], bytes2: &[u8]) -> u32 {
+  let mut distance: u32 = 0;
+  for byte in xor_bytes(bytes1, bytes2) {
+    distance += (byte as u64).count_ones();
+  }
+  distance
+}
+
+pub fn xor_bytes(a: &[u8], b: &[u8]) -> Vec<u8> {
   if a.len() != b.len() {
     panic!("Byte arrays not the same length!")
   };
@@ -37,6 +45,19 @@ fn xor_bytes(a: &[u8], b: &[u8]) -> Vec<u8> {
     xord_bytes.push(byte ^ b[i]);
   }
   xord_bytes
+}
+
+pub fn expand_bytes(bytes: &[u8], size: usize) -> Vec<u8> {
+  let mut expanded_bytes: Vec<u8> = vec![];
+  while { expanded_bytes.len() < size } {
+    let bytes_needed = size - expanded_bytes.len();
+    if bytes.len() < bytes_needed {
+      expanded_bytes.extend(bytes.to_vec());
+    } else {
+      expanded_bytes.extend(bytes[0..bytes_needed].to_vec());
+    }
+  }
+  expanded_bytes
 }
 
 fn resize_key(key: &str, size: usize) -> String {
@@ -149,5 +170,35 @@ mod tests {
     let result = xor_hex(&hex1, &hex2);
 
     assert_eq!(result, xord);
+  }
+
+  #[test]
+  fn simple_hamming_distance() {
+    let bytes1 = b"a"; // 01100001
+    let bytes2 = b"b"; // 01100010
+
+    let result = hamming_distance(bytes1, bytes2);
+
+    assert_eq!(result, 2);
+  }
+
+  #[test]
+  fn complex_hamming_distance() {
+    let bytes1 = b"this is a test";
+    let bytes2 = b"wokka wokka!!!";
+
+    let result = hamming_distance(bytes1, bytes2);
+
+    assert_eq!(result, 37);
+  }
+
+  #[test]
+  fn it_expands_bytes() {
+    let bytes = b"abc";
+
+    assert_eq!(b"abcabc".to_vec(), expand_bytes(bytes, 6));
+    assert_eq!(b"abcabca".to_vec(), expand_bytes(bytes, 7));
+    assert_eq!(b"abcabcab".to_vec(), expand_bytes(bytes, 8));
+    assert_eq!(b"ab".to_vec(), expand_bytes(bytes, 2));
   }
 }
