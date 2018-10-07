@@ -10,10 +10,14 @@ pub fn hex_to_b64(hex: &str) -> String {
   base64::encode(&decoded_hex)
 }
 
+pub fn bytes_to_string(bytes: Vec<u8>) -> String {
+  bytes.into_iter().map(|b| b as char).collect::<String>()
+}
+
 pub fn xor_string(msg: &str, key: &str) -> String {
   let key = resize_key(key, msg.len());
-  let xord_bytes = xor_bytes(String::from(msg).as_bytes(), key.as_bytes());
-  xord_bytes.into_iter().map(|b| b as char).collect()
+  let xord_bytes = xor_bytes(msg.as_bytes(), key.as_bytes());
+  bytes_to_string(xord_bytes)
 }
 
 pub fn xor_hex(hex_msg: &str, hex_key: &str) -> String {
