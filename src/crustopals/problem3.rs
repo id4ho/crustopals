@@ -27,7 +27,7 @@ pub fn solve_single_byte_xor(hex_str: &str) -> (f32, String, String) {
 fn generate_single_byte_hex_xors(hex_str: &str) -> Vec<(String, String)> {
   (0..256)
     .into_iter()
-    .map(|byte| format!("{:x}", byte))
+    .map(|byte| format!("{:02x}", byte))
     .map(|hex_key| (tools::xor_hex(hex_str, &hex_key), hex_key))
     .collect()
 }
@@ -39,8 +39,7 @@ mod tests {
   #[test]
   fn solves_simple_xor() {
     let plaintext = "Hello World";
-    let ciphertext = tools::xor_string(plaintext, "a");
-    let ciphertext_hex = hex::encode(ciphertext);
+    let ciphertext_hex = tools::xor_hex(&hex::encode(plaintext), "0a");
     let deciphered_string = problem3::solve_single_byte_xor(&ciphertext_hex);
     assert_eq!(deciphered_string.1, plaintext);
   }
