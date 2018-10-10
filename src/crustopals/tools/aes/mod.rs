@@ -39,24 +39,33 @@ impl PartialEq for Word {
   }
 }
 
-pub fn key_expansion(key: &[u8]) -> Vec<Word> {
-  // need to take 4 words (32 bits each) and transform them into 44 words
+pub fn encrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+  let round_keys = key_schedule(key);
+  let padded_bytes = pad_bytes(bytes);
+  for block in padded_bytes.chunks(16) {
+    println!("the block looks like {:?}", block);
+  }
+  vec![b'0']
+}
+
+pub fn key_schedule(key: &[u8]) -> Vec<Word> {
+  // takes 4 words (32 bits each) and transform them into 44 words
   if key.len() != 16 {
     panic!("Wrong size key. Must be 16 bytes.");
   }
   let mut expanded_key: Vec<Word> = vec![];
-  for word_idx in 0..44 {
+
+  for word in key.chunks(4) {
+    expanded_key.push(Word::new(&word))
+  }
+
+  for word_idx in 4..44 {
     let word: Word;
-    if word_idx < 4 {
-      let word_start = word_idx * 4;
-      let word_end = (word_idx + 1) * 4;
-      word = Word::new(&key[word_start..word_end]);
-    } else {
+    {
       let one_ago = &expanded_key[word_idx - 1];
       let four_ago = &expanded_key[word_idx - 4];
-
       if word_idx % 4 == 0 {
-        let rconi = Word::new(&[rc(word_idx / 4), 0 as u8, 0 as u8, 0 as u8]);
+        let rconi = rcon(word_idx);
         let rot_and_sboxed = one_ago.rotated().sbox_mapped();
         word = four_ago.xor(&rot_and_sboxed).xor(&rconi);
       } else {
@@ -67,6 +76,25 @@ pub fn key_expansion(key: &[u8]) -> Vec<Word> {
   }
 
   expanded_key
+}
+
+fn pad_bytes(bytes: &[u8]) -> Vec<u8> {
+  let mut byte_vec = bytes.to_vec();
+  let num_bytes = 16 - (byte_vec.len() % 16);
+  byte_vec.extend(padding_bytes(num_bytes));
+  byte_vec
+}
+
+fn padding_bytes(num_bytes: usize) -> Vec<u8> {
+  let mut padding: Vec<u8> = vec![];
+  for i in 0..num_bytes {
+    padding.push(num_bytes as u8);
+  }
+  padding
+}
+
+fn rcon(word_idx: usize) -> Word {
+  Word::new(&[rc(word_idx / 4), 0 as u8, 0 as u8, 0 as u8])
 }
 
 fn rc(idx: usize) -> u8 {
@@ -82,7 +110,7 @@ mod tests {
   #[should_panic(expected = "Wrong size key. Must be 16 bytes.")]
   fn panics_with_wrong_keysize() {
     let key = b"Hello world";
-    key_expansion(key);
+    key_schedule(key);
   }
 
   #[test]
@@ -99,7 +127,7 @@ mod tests {
       "e13f0cc8", "b6630ca6",
     ];
 
-    let computed_round_keys = key_expansion(&key);
+    let computed_round_keys = key_schedule(&key);
 
     for (i, word) in expanded_round_key_words.iter().enumerate() {
       assert_eq!(
@@ -107,5 +135,15 @@ mod tests {
         Word::new(&hex::decode(word).unwrap())
       );
     }
+  }
+
+  #[test]
+  fn encrypts_messages() {
+    let key = "YELLOW SUBMARINE";
+    let message = String::from("here is the mess");
+    let _aes_128_bit_encrypted =
+      encrypt_message(message.as_bytes(), key.as_bytes());
+
+    assert_eq!(2, 3);
   }
 }
