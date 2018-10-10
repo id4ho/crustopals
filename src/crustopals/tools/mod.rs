@@ -1,6 +1,7 @@
 extern crate base64;
 extern crate hex;
 
+pub mod aes;
 pub mod freq_analysis;
 
 // TODO: create struct for hex so as to be distinct from String.
