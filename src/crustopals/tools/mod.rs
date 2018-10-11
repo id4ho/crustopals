@@ -6,6 +6,23 @@ pub mod freq_analysis;
 
 // TODO: create struct for hex so as to be distinct from String.
 
+pub fn mult_bytes(mut a: u8, mut b: u8) -> u8 {
+  let mut p: u8 = 0;
+  let modulo: u8 = 27; // 11B field representation modulo
+  for _i in 0..8 {
+    if b & 1 > 0 {
+      p = p ^ a;
+    }
+    b = b >> 1;
+    let carry = a & 0x80;
+    a = a << 1;
+    if carry > 0 {
+      a = a ^ modulo;
+    }
+  }
+  p
+}
+
 pub fn hex_to_b64(hex: &str) -> String {
   let decoded_hex = hex::decode(hex).expect("Invalid Hex!");
   base64::encode(&decoded_hex)

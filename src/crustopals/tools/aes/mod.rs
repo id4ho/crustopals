@@ -1,54 +1,41 @@
 pub mod byte_operations;
+mod key_schedule;
+mod state_array;
+mod word;
 
 use self::byte_operations::s_box;
+use self::key_schedule::KeySchedule;
+use self::state_array::StateArray;
+use self::word::Word;
 use crustopals::tools;
-
-#[derive(Debug)]
-pub struct Word {
-  bytes: [u8; 4],
-}
-
-impl Word {
-  pub fn new(slice: &[u8]) -> Word {
-    let mut bytes: [u8; 4] = Default::default();
-    bytes.copy_from_slice(slice);
-    Word { bytes }
-  }
-
-  pub fn xor(&self, other: &Word) -> Word {
-    Word::new(&tools::xor_bytes(&self.bytes, &other.bytes)[..])
-  }
-
-  pub fn rotated(&self) -> Word {
-    Word::new(&[self.bytes[1], self.bytes[2], self.bytes[3], self.bytes[0]])
-  }
-
-  pub fn sbox_mapped(&self) -> Word {
-    Word::new(&[
-      s_box(self.bytes[0]),
-      s_box(self.bytes[1]),
-      s_box(self.bytes[2]),
-      s_box(self.bytes[3]),
-    ])
-  }
-}
-
-impl PartialEq for Word {
-  fn eq(&self, other: &Word) -> bool {
-    self.bytes == other.bytes
-  }
-}
 
 pub fn encrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   let round_keys = key_schedule(key);
   let padded_bytes = pad_bytes(bytes);
+  let mut encrypted_message: Vec<u8> = vec![];
   for block in padded_bytes.chunks(16) {
-    println!("the block looks like {:?}", block);
+    let state_array = StateArray::new(block);
+    let encrypted_block = encrypt_block(state_array, &round_keys);
+    let result = encrypted_block.to_u8();
+    encrypted_message.extend(result);
   }
-  vec![b'0']
+  encrypted_message
 }
 
-pub fn key_schedule(key: &[u8]) -> Vec<Word> {
+fn encrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
+  state.apply_round_key(keys.round_key(0));
+  for round in 1..=10 {
+    state.sbox_translate();
+    state.shift_rows();
+    if round != 10 {
+      state.mix_columns();
+    }
+    state.apply_round_key(keys.round_key(round));
+  }
+  state
+}
+
+pub fn key_schedule(key: &[u8]) -> KeySchedule {
   // takes 4 words (32 bits each) and transform them into 44 words
   if key.len() != 16 {
     panic!("Wrong size key. Must be 16 bytes.");
@@ -75,7 +62,7 @@ pub fn key_schedule(key: &[u8]) -> Vec<Word> {
     expanded_key.push(word);
   }
 
-  expanded_key
+  KeySchedule::new(expanded_key)
 }
 
 fn pad_bytes(bytes: &[u8]) -> Vec<u8> {
@@ -87,7 +74,7 @@ fn pad_bytes(bytes: &[u8]) -> Vec<u8> {
 
 fn padding_bytes(num_bytes: usize) -> Vec<u8> {
   let mut padding: Vec<u8> = vec![];
-  for i in 0..num_bytes {
+  for _i in 0..num_bytes {
     padding.push(num_bytes as u8);
   }
   padding
@@ -104,6 +91,7 @@ fn rc(idx: usize) -> u8 {
 #[cfg(test)]
 mod tests {
   use super::*;
+  extern crate base64;
   extern crate hex;
 
   #[test]
@@ -141,9 +129,11 @@ mod tests {
   fn encrypts_messages() {
     let key = "YELLOW SUBMARINE";
     let message = String::from("here is the mess");
-    let _aes_128_bit_encrypted =
+    let expected_ciphertext =
+      base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
+    let aes_128_bit_encrypted =
       encrypt_message(message.as_bytes(), key.as_bytes());
 
-    assert_eq!(2, 3);
+    assert_eq!(aes_128_bit_encrypted, expected_ciphertext);
   }
 }
