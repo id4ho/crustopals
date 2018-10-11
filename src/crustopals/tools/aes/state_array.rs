@@ -27,6 +27,12 @@ impl StateArray {
     }
   }
 
+  pub fn inv_sbox_translate(&mut self) {
+    for i in 0..4 {
+      self.block[i] = self.block[i].inv_sbox_mapped();
+    }
+  }
+
   pub fn shift_rows(&mut self) {
     self.transpose();
     for row in 1..4 {
@@ -37,9 +43,39 @@ impl StateArray {
     self.transpose();
   }
 
+  pub fn inv_shift_rows(&mut self) {
+    self.transpose();
+    for row in 1..4 {
+      for _num_shifts in 0..(4 - row) {
+        self.block[row] = self.block[row].rotated();
+      }
+    }
+    self.transpose();
+  }
+
   pub fn mix_columns(&mut self) {
     let coef_matrix: [[u8; 4]; 4] =
       [[2, 3, 1, 1], [1, 2, 3, 1], [1, 1, 2, 3], [3, 1, 1, 2]];
+    for row in 0..4 {
+      let mut bytes: Vec<u8> = vec![];
+      for coefficients in coef_matrix.iter() {
+        let mut result: u8 = 0;
+        for (b, coef) in self.block[row].bytes.iter().zip(coefficients.iter()) {
+          result = result ^ tools::mult_bytes(b.clone(), coef.clone());
+        }
+        bytes.push(result);
+      }
+      self.block[row] = Word::new(&bytes);
+    }
+  }
+
+  pub fn inv_mix_columns(&mut self) {
+    let coef_matrix: [[u8; 4]; 4] = [
+      [14, 11, 13, 9],
+      [9, 14, 11, 13],
+      [13, 9, 14, 11],
+      [11, 13, 9, 14],
+    ];
     for row in 0..4 {
       let mut bytes: Vec<u8> = vec![];
       for coefficients in coef_matrix.iter() {
@@ -82,7 +118,7 @@ impl fmt::Debug for StateArray {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(
       f,
-      "{:?}\n{:?}\n{:?}\n{:?}",
+      "{:?}{:?}{:?}{:?}",
       self.block[0], self.block[1], self.block[2], self.block[3],
     )
   }

@@ -30,6 +30,15 @@ impl Word {
       s_box(self.bytes[3]),
     ])
   }
+
+  pub fn inv_sbox_mapped(&self) -> Word {
+    Word::new(&[
+      inv_s_box(self.bytes[0]),
+      inv_s_box(self.bytes[1]),
+      inv_s_box(self.bytes[2]),
+      inv_s_box(self.bytes[3]),
+    ])
+  }
 }
 
 impl PartialEq for Word {
@@ -43,11 +52,11 @@ impl fmt::Debug for Word {
     let mut iter = self.bytes.iter();
     write!(
       f,
-      "{:?} {:?} {:?} {:?}",
-      format!("{:02x}", iter.next().unwrap()),
-      format!("{:02x}", iter.next().unwrap()),
-      format!("{:02x}", iter.next().unwrap()),
-      format!("{:02x}", iter.next().unwrap()),
+      "{:02x}{:02x}{:02x}{:02x}",
+      iter.next().unwrap(),
+      iter.next().unwrap(),
+      iter.next().unwrap(),
+      iter.next().unwrap(),
     )
   }
 }

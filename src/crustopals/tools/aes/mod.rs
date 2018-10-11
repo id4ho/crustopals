@@ -3,7 +3,7 @@ mod key_schedule;
 mod state_array;
 mod word;
 
-use self::byte_operations::s_box;
+use self::byte_operations::*;
 use self::key_schedule::KeySchedule;
 use self::state_array::StateArray;
 use self::word::Word;
@@ -22,6 +22,25 @@ pub fn encrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   encrypted_message
 }
 
+pub fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+  let round_keys = key_schedule(key);
+  let mut decrypted_message: Vec<u8> = vec![];
+  for block in bytes.chunks(16) {
+    let state_array = StateArray::new(block);
+    let decrypted_block = decrypt_block(state_array, &round_keys);
+    let result = decrypted_block.to_u8();
+    decrypted_message.extend(result);
+  }
+  strip_padding(&mut decrypted_message);
+  decrypted_message
+}
+
+fn strip_padding(decrypted_bytes: &mut Vec<u8>) {
+  let total = decrypted_bytes.len();
+  let padding = decrypted_bytes[decrypted_bytes.len() - 1] as usize;
+  decrypted_bytes.truncate(total - padding);
+}
+
 fn encrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
   state.apply_round_key(keys.round_key(0));
   for round in 1..=10 {
@@ -31,6 +50,19 @@ fn encrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
       state.mix_columns();
     }
     state.apply_round_key(keys.round_key(round));
+  }
+  state
+}
+
+fn decrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
+  state.apply_round_key(keys.round_key(10));
+  for round in (0..10).rev() {
+    state.inv_shift_rows();
+    state.inv_sbox_translate();
+    state.apply_round_key(keys.round_key(round));
+    if round != 0 {
+      state.inv_mix_columns();
+    }
   }
   state
 }
@@ -90,9 +122,23 @@ fn rc(idx: usize) -> u8 {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   extern crate base64;
   extern crate hex;
+
+  use super::*;
+  use std::fs;
+  use std::fs::File;
+  use std::io::{BufRead, BufReader};
+
+  fn ciphertext_bytes() -> Vec<u8> {
+    let mut ciphertext_base64 = String::new();
+    let base64_file = File::open("src/crustopals/problem7/7.txt").unwrap();
+    let reader = BufReader::new(base64_file);
+    for line in reader.lines() {
+      ciphertext_base64.push_str(&line.unwrap())
+    }
+    base64::decode(&ciphertext_base64).unwrap()
+  }
 
   #[test]
   #[should_panic(expected = "Wrong size key. Must be 16 bytes.")]
@@ -135,5 +181,44 @@ mod tests {
       encrypt_message(message.as_bytes(), key.as_bytes());
 
     assert_eq!(aes_128_bit_encrypted, expected_ciphertext);
+  }
+
+  #[test]
+  fn decrypts_messages() {
+    let key = "YELLOW SUBMARINE";
+    let ciphertext =
+      base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
+    let aes_128_bit_decrypted = decrypt_message(&ciphertext, key.as_bytes());
+
+    assert_eq!(
+      aes_128_bit_decrypted,
+      String::from("here is the mess").as_bytes()
+    );
+  }
+
+  #[test]
+  fn decrypts_test_message() {
+    let key = hex::decode("000102030405060708090a0b0c0d0e0f").unwrap();
+    let ciphertext = hex::decode(
+      "69c4e0d86a7b0430d8cdb78070b4c55a954f64f2e4e86e9eee82d20216684899",
+    ).unwrap();
+    let plaintext = hex::decode("00112233445566778899aabbccddeeff").unwrap();
+    let aes_128_bit_decrypted = decrypt_message(&ciphertext, &key);
+    let aes_128_bit_encrypted = encrypt_message(&plaintext, &key);
+
+    assert_eq!(ciphertext, aes_128_bit_encrypted);
+    assert_eq!(aes_128_bit_decrypted, plaintext);
+  }
+
+  #[test]
+  fn solve_problem_7() {
+    let key = "YELLOW SUBMARINE";
+    let aes_128_bit_decrypted =
+      decrypt_message(&ciphertext_bytes(), key.as_bytes());
+
+    assert_eq!(
+      tools::bytes_to_string(aes_128_bit_decrypted),
+      fs::read_to_string("src/crustopals/problem6/solution.txt").unwrap() // same solution as 6
+    );
   }
 }
