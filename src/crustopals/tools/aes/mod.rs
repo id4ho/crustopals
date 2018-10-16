@@ -126,19 +126,6 @@ mod tests {
   extern crate hex;
 
   use super::*;
-  use std::fs;
-  use std::fs::File;
-  use std::io::{BufRead, BufReader};
-
-  fn ciphertext_bytes() -> Vec<u8> {
-    let mut ciphertext_base64 = String::new();
-    let base64_file = File::open("src/crustopals/problem7/7.txt").unwrap();
-    let reader = BufReader::new(base64_file);
-    for line in reader.lines() {
-      ciphertext_base64.push_str(&line.unwrap())
-    }
-    base64::decode(&ciphertext_base64).unwrap()
-  }
 
   #[test]
   #[should_panic(expected = "Wrong size key. Must be 16 bytes.")]
@@ -208,17 +195,5 @@ mod tests {
 
     assert_eq!(ciphertext, aes_128_bit_encrypted);
     assert_eq!(aes_128_bit_decrypted, plaintext);
-  }
-
-  #[test]
-  fn solve_problem_7() {
-    let key = "YELLOW SUBMARINE";
-    let aes_128_bit_decrypted =
-      decrypt_message(&ciphertext_bytes(), key.as_bytes());
-
-    assert_eq!(
-      tools::bytes_to_string(aes_128_bit_decrypted),
-      fs::read_to_string("src/crustopals/problem6/solution.txt").unwrap() // same solution as 6
-    );
   }
 }
