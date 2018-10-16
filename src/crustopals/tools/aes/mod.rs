@@ -98,18 +98,7 @@ pub fn key_schedule(key: &[u8]) -> KeySchedule {
 }
 
 fn pad_bytes(bytes: &[u8]) -> Vec<u8> {
-  let mut byte_vec = bytes.to_vec();
-  let num_bytes = 16 - (byte_vec.len() % 16);
-  byte_vec.extend(padding_bytes(num_bytes));
-  byte_vec
-}
-
-fn padding_bytes(num_bytes: usize) -> Vec<u8> {
-  let mut padding: Vec<u8> = vec![];
-  for _i in 0..num_bytes {
-    padding.push(num_bytes as u8);
-  }
-  padding
+  tools::pad_bytes(bytes, 16)
 }
 
 fn rcon(word_idx: usize) -> Word {

@@ -78,6 +78,21 @@ pub fn expand_bytes(bytes: &[u8], size: usize) -> Vec<u8> {
   expanded_bytes
 }
 
+pub fn pad_bytes(bytes: &[u8], block_size: usize) -> Vec<u8> {
+  let mut byte_vec = bytes.to_vec();
+  let num_bytes = block_size - (byte_vec.len() % block_size);
+  byte_vec.extend(padding_bytes(num_bytes));
+  byte_vec
+}
+
+fn padding_bytes(num_bytes: usize) -> Vec<u8> {
+  let mut padding: Vec<u8> = vec![];
+  for _i in 0..num_bytes {
+    padding.push(num_bytes as u8);
+  }
+  padding
+}
+
 fn resize_key(key: &str, size: usize) -> String {
   if key.len() == size {
     return String::from(key);
