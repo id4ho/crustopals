@@ -14,11 +14,24 @@ impl StateArray {
     StateArray { block }
   }
 
+  pub fn new_from_key(key: &Vec<Word>) -> StateArray {
+    let mut block: Vec<Word> = vec![];
+    for word in key {
+      block.push(word.clone());
+    }
+    StateArray { block }
+  }
+
   pub fn apply_round_key(&mut self, key: &Vec<Word>) {
-    self.block[0] = self.block[0].xor(&key[0]);
-    self.block[1] = self.block[1].xor(&key[1]);
-    self.block[2] = self.block[2].xor(&key[2]);
-    self.block[3] = self.block[3].xor(&key[3]);
+    let other_block = StateArray::new_from_key(key);
+    self.xor(&other_block);
+  }
+
+  pub fn xor(&mut self, other_block: &StateArray) {
+    self.block[0] = self.block[0].xor(&other_block.block[0]);
+    self.block[1] = self.block[1].xor(&other_block.block[1]);
+    self.block[2] = self.block[2].xor(&other_block.block[2]);
+    self.block[3] = self.block[3].xor(&other_block.block[3]);
   }
 
   pub fn sbox_translate(&mut self) {

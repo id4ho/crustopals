@@ -9,6 +9,27 @@ use self::state_array::StateArray;
 use self::word::Word;
 use crustopals::tools;
 
+pub fn encrypt_message_cbc(bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+  let round_keys = key_schedule(key);
+  let padded_bytes = pad_bytes(bytes);
+  let mut encrypted_message: Vec<u8> = vec![];
+  for block in padded_bytes.chunks(16) {
+    let prev_block = if encrypted_message.len() == 0 {
+      StateArray::new(&iv)
+    } else {
+      let prev_block_start: usize = (encrypted_message.len() - 16) as usize;
+      StateArray::new(&encrypted_message[prev_block_start..])
+    };
+
+    let mut state_array = StateArray::new(block);
+    state_array.xor(&prev_block);
+    let encrypted_block = encrypt_block(state_array, &round_keys);
+    let result = encrypted_block.to_u8();
+    encrypted_message.extend(result);
+  }
+  encrypted_message
+}
+
 pub fn encrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   let round_keys = key_schedule(key);
   let padded_bytes = pad_bytes(bytes);
@@ -22,7 +43,17 @@ pub fn encrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   encrypted_message
 }
 
-pub fn decrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+pub fn decrypt_message_cbc(bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+  let decrypt_pre_xor = decrypt_message(bytes, key);
+  let mut iv_with_ciphertext: Vec<u8> = vec![];
+  iv_with_ciphertext.extend(iv.to_vec());
+  iv_with_ciphertext.extend(bytes);
+  iv_with_ciphertext.truncate(decrypt_pre_xor.len());
+  let pt_with_padding = tools::xor_bytes(&decrypt_pre_xor, &iv_with_ciphertext);
+  strip_padding(pt_with_padding)
+}
+
+fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   let round_keys = key_schedule(key);
   let mut decrypted_message: Vec<u8> = vec![];
   for block in bytes.chunks(16) {
@@ -31,14 +62,19 @@ pub fn decrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
     let result = decrypted_block.to_u8();
     decrypted_message.extend(result);
   }
-  strip_padding(&mut decrypted_message);
   decrypted_message
 }
 
-fn strip_padding(decrypted_bytes: &mut Vec<u8>) {
+pub fn decrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+  let decrypted_message = decrypt_message(bytes, key);
+  strip_padding(decrypted_message)
+}
+
+fn strip_padding(mut decrypted_bytes: Vec<u8>) -> Vec<u8> {
   let total = decrypted_bytes.len();
   let padding = decrypted_bytes[decrypted_bytes.len() - 1] as usize;
   decrypted_bytes.truncate(total - padding);
+  decrypted_bytes
 }
 
 fn encrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
@@ -148,29 +184,47 @@ mod tests {
   }
 
   #[test]
+  fn encrypts_messages_in_cbc_mode() {
+    let key = "YELLOW SUBMARINE".as_bytes();
+    let message = "here is the mess".as_bytes();
+    let iv = [0 as u8; 16];
+    let expected_ciphertext =
+      base64::decode("nRGOqUe3iBURUPUe5NjYJTSrsoTAS1bzHKzpdPDcoFg=").unwrap();
+    let encrypted = encrypt_message_cbc(message, key, &iv);
+
+    assert_eq!(encrypted, expected_ciphertext);
+  }
+
+  #[test]
+  fn decrypts_messages_in_cbc_mode() {
+    let key = "YELLOW SUBMARINE".as_bytes();
+    let iv = [0 as u8; 16];
+    let ciphertext =
+      base64::decode("nRGOqUe3iBURUPUe5NjYJTSrsoTAS1bzHKzpdPDcoFg=").unwrap();
+    let aes_128_bit_decrypted = decrypt_message_cbc(&ciphertext, key, &iv);
+
+    assert_eq!(aes_128_bit_decrypted, "here is the mess".as_bytes());
+  }
+
+  #[test]
   fn encrypts_messages_in_ecb_mode() {
-    let key = "YELLOW SUBMARINE";
-    let message = String::from("here is the mess");
+    let key = "YELLOW SUBMARINE".as_bytes();
+    let message = "here is the mess".as_bytes();
     let expected_ciphertext =
       base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
-    let aes_128_bit_encrypted =
-      encrypt_message_ecb(message.as_bytes(), key.as_bytes());
+    let aes_128_bit_encrypted = encrypt_message_ecb(message, key);
 
     assert_eq!(aes_128_bit_encrypted, expected_ciphertext);
   }
 
   #[test]
   fn decrypts_messages_in_ecb_mode() {
-    let key = "YELLOW SUBMARINE";
+    let key = "YELLOW SUBMARINE".as_bytes();
     let ciphertext =
       base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
-    let aes_128_bit_decrypted =
-      decrypt_message_ecb(&ciphertext, key.as_bytes());
+    let aes_128_bit_decrypted = decrypt_message_ecb(&ciphertext, key);
 
-    assert_eq!(
-      aes_128_bit_decrypted,
-      String::from("here is the mess").as_bytes()
-    );
+    assert_eq!(aes_128_bit_decrypted, "here is the mess".as_bytes());
   }
 
   #[test]
