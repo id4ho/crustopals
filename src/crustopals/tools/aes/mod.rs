@@ -9,7 +9,7 @@ use self::state_array::StateArray;
 use self::word::Word;
 use crustopals::tools;
 
-pub fn encrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+pub fn encrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   let round_keys = key_schedule(key);
   let padded_bytes = pad_bytes(bytes);
   let mut encrypted_message: Vec<u8> = vec![];
@@ -22,7 +22,7 @@ pub fn encrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   encrypted_message
 }
 
-pub fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+pub fn decrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   let round_keys = key_schedule(key);
   let mut decrypted_message: Vec<u8> = vec![];
   for block in bytes.chunks(16) {
@@ -148,23 +148,24 @@ mod tests {
   }
 
   #[test]
-  fn encrypts_messages() {
+  fn encrypts_messages_in_ecb_mode() {
     let key = "YELLOW SUBMARINE";
     let message = String::from("here is the mess");
     let expected_ciphertext =
       base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
     let aes_128_bit_encrypted =
-      encrypt_message(message.as_bytes(), key.as_bytes());
+      encrypt_message_ecb(message.as_bytes(), key.as_bytes());
 
     assert_eq!(aes_128_bit_encrypted, expected_ciphertext);
   }
 
   #[test]
-  fn decrypts_messages() {
+  fn decrypts_messages_in_ecb_mode() {
     let key = "YELLOW SUBMARINE";
     let ciphertext =
       base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
-    let aes_128_bit_decrypted = decrypt_message(&ciphertext, key.as_bytes());
+    let aes_128_bit_decrypted =
+      decrypt_message_ecb(&ciphertext, key.as_bytes());
 
     assert_eq!(
       aes_128_bit_decrypted,
@@ -173,14 +174,14 @@ mod tests {
   }
 
   #[test]
-  fn decrypts_test_message() {
+  fn decrypts_ecb_test_message() {
     let key = hex::decode("000102030405060708090a0b0c0d0e0f").unwrap();
     let ciphertext = hex::decode(
       "69c4e0d86a7b0430d8cdb78070b4c55a954f64f2e4e86e9eee82d20216684899",
     ).unwrap();
     let plaintext = hex::decode("00112233445566778899aabbccddeeff").unwrap();
-    let aes_128_bit_decrypted = decrypt_message(&ciphertext, &key);
-    let aes_128_bit_encrypted = encrypt_message(&plaintext, &key);
+    let aes_128_bit_decrypted = decrypt_message_ecb(&ciphertext, &key);
+    let aes_128_bit_encrypted = encrypt_message_ecb(&plaintext, &key);
 
     assert_eq!(ciphertext, aes_128_bit_encrypted);
     assert_eq!(aes_128_bit_decrypted, plaintext);
