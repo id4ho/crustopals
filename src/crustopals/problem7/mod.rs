@@ -20,7 +20,8 @@ mod tests {
   #[test]
   fn solve_problem_7() {
     let key = "YELLOW SUBMARINE".as_bytes();
-    let aes_128_bit_decrypted = aes::decrypt_message(&ciphertext_bytes(), key);
+    let aes_128_bit_decrypted =
+      aes::decrypt_message_ecb(&ciphertext_bytes(), key);
 
     assert_eq!(
       bytes_to_string(aes_128_bit_decrypted),

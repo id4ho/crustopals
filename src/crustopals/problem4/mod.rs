@@ -3,15 +3,16 @@ use std::cmp::Ordering;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-pub fn solve_problem4() -> Result<(f32, String), String> {
+pub fn solve_problem4() -> Result<(f32, String, String), String> {
   let f = File::open("4.txt").map_err(|e| e.to_string())?;
   let reader = BufReader::new(f);
   let lines_iter = reader.lines().map(|l| l.unwrap());
 
   let result = lines_iter
     .map(|line| problem3::solve_single_byte_xor(&line))
-    .min_by(|(d1, _), (d2, _)| d1.partial_cmp(d2).unwrap_or(Ordering::Equal))
-    .unwrap();
+    .min_by(|(d1, _, _), (d2, _, _)| {
+      d1.partial_cmp(d2).unwrap_or(Ordering::Equal)
+    }).unwrap();
   Ok(result)
 }
 
