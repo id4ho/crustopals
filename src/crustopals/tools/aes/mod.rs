@@ -1,3 +1,5 @@
+extern crate rand;
+
 pub mod byte_operations;
 mod key_schedule;
 mod state_array;
@@ -8,6 +10,18 @@ use self::key_schedule::KeySchedule;
 use self::state_array::StateArray;
 use self::word::Word;
 use crustopals::tools;
+
+pub fn generate_key() -> Vec<u8> {
+  generate_rand_bytes(16)
+}
+
+pub fn generate_iv() -> Vec<u8> {
+  generate_rand_bytes(16)
+}
+
+pub fn generate_rand_bytes(length: usize) -> Vec<u8> {
+  (0..length).map(|_| rand::random::<u8>()).collect()
+}
 
 pub fn encrypt_message_cbc(bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
   let round_keys = key_schedule(key);
