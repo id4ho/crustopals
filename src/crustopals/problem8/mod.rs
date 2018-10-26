@@ -1,25 +1,27 @@
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+extern crate hex;
 
 pub fn detect_aes_ecb(filepath: String) -> String {
   let file = File::open(filepath).unwrap();
   let reader = BufReader::new(file);
-  let mut aes_line = String::new();
+  let mut aes_line: Vec<u8> = vec![];
   for l in reader.lines() {
     let line = l.unwrap();
-    if has_repeat_blocks(&line) {
-      aes_line = line;
+    let bytes = hex::decode(line).unwrap();
+    if has_repeat_blocks(&bytes) {
+      aes_line = bytes;
     }
   }
-  aes_line
+  hex::encode(aes_line)
 }
 
-fn has_repeat_blocks(blob: &str) -> bool {
+pub fn has_repeat_blocks(blob: &[u8]) -> bool {
   let num_blocks = blob.len() / 16;
   let mut deduped_blocks = HashSet::new();
 
-  for block in blob.as_bytes().chunks(16) {
+  for block in blob.chunks(16) {
     deduped_blocks.insert(block);
   }
 
