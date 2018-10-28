@@ -5,13 +5,12 @@ use crustopals::tools::*;
 
 lazy_static! {
   pub static ref RANDOM_KEY: Vec<u8> = aes::generate_key();
-  pub static ref PREPEND_STR: String = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
+  pub static ref APPEND_STR: String = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
 }
 
 pub fn aes_128_ecb_rand_key_oracle(message: String) -> Vec<u8> {
-  let mut plaintext: Vec<u8> =
-    base64::decode(&PREPEND_STR.to_string()).unwrap();
-  plaintext.extend(message.as_bytes());
+  let mut plaintext: Vec<u8> = message.as_bytes().to_vec();
+  plaintext.extend(base64::decode(&APPEND_STR.to_string()).unwrap());
   aes::encrypt_message_ecb(&plaintext, &RANDOM_KEY.to_vec())
 }
 
@@ -38,26 +37,9 @@ pub fn test_ecb() -> bool {
   "ecb".to_string() == mode
 }
 
-pub fn determine_even_block_msg() -> String {
-  let mut msg = "A".to_string();
-  let mut ciphertext = aes_128_ecb_rand_key_oracle(msg.clone());
-  let ciphertext_len = ciphertext.len();
-  while ciphertext.len() == ciphertext_len {
-    msg = format!("{}A", msg);
-    ciphertext = aes_128_ecb_rand_key_oracle(msg.clone());
-  }
-  msg
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  #[test]
-  fn finds_even_test_block() {
-    let full_block = determine_even_block_msg();
-    assert_eq!(full_block, "AAAAAA");
-  }
 
   #[test]
   fn can_determine_blocksize() {
