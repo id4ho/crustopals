@@ -1,4 +1,73 @@
+use crustopals::tools::*;
 use std::collections::HashMap;
+
+lazy_static! {
+  pub static ref RANDOM_KEY: Vec<u8> = aes::generate_key();
+}
+
+#[derive(Debug)]
+pub struct Profile {
+  email: String,
+  role: String,
+  uid: i32,
+}
+
+impl Profile {
+  pub fn profile_for(email: String) -> Profile {
+    Profile {
+      email: email,
+      uid: 10, // hardcoded
+      role: "user".to_string(),
+    }
+  }
+
+  pub fn from_query_string(query_str: String) -> Result<Profile, String> {
+    let parsed_query_string = parse_kv_string(query_str);
+    if parsed_query_string.contains_key("email")
+      && parsed_query_string.contains_key("uid")
+    {
+      Ok(Profile {
+        email: parsed_query_string.get("email").unwrap().to_string(),
+        uid: parsed_query_string
+          .get("uid")
+          .unwrap()
+          .parse::<i32>()
+          .unwrap(),
+        role: parsed_query_string
+          .get("role")
+          .unwrap_or(&"user".to_string())
+          .to_string(),
+      })
+    } else {
+      Err("Doesn't have the correct params".to_string())
+    }
+  }
+
+  pub fn as_query_string(&self) -> String {
+    format!("email={}&uid={}&role={}", self.email, self.uid, self.role)
+  }
+
+  pub fn encrypt(&self) -> Vec<u8> {
+    aes::encrypt_message_ecb(
+      &self.as_query_string().as_bytes(),
+      &RANDOM_KEY.to_vec(),
+    )
+  }
+
+  pub fn from_encrypted_blob(encrypted_qs: Vec<u8>) -> Result<Profile, String> {
+    let decrypted_qs =
+      aes::decrypt_message_ecb(&encrypted_qs, &RANDOM_KEY.to_vec());
+    Profile::from_query_string(bytes_to_string(decrypted_qs))
+  }
+}
+
+impl PartialEq for Profile {
+  fn eq(&self, other: &Profile) -> bool {
+    self.email == other.email
+      && self.uid == other.uid
+      && self.role == other.role
+  }
+}
 
 pub fn parse_kv_string(kv_string: String) -> HashMap<String, String> {
   let mut key_values: HashMap<String, String> = HashMap::new();
@@ -66,5 +135,74 @@ mod tests {
     let result = parse_kv_string(kv_string);
 
     assert_eq!(result, kvs);
+  }
+
+  #[test]
+  fn formats_a_profile_as_a_query_string() {
+    let profile = Profile {
+      email: "jack@email.email".to_string(),
+      role: "user".to_string(),
+      uid: 10,
+    };
+    let query_str = "email=jack@email.email&uid=10&role=user".to_string();
+
+    let result = profile.as_query_string();
+
+    assert_eq!(result, query_str);
+  }
+
+  #[test]
+  fn generates_a_profile_from_a_query_str() {
+    let query_str = "email=jack@email.email&uid=10&role=user".to_string();
+    let profile = Profile {
+      email: "jack@email.email".to_string(),
+      role: "user".to_string(),
+      uid: 10,
+    };
+
+    let result = Profile::from_query_string(query_str);
+
+    assert_eq!(result.unwrap(), profile);
+  }
+
+  #[test]
+  fn generates_a_user_profile_from_an_email() {
+    let email = "jack@gmail.com".to_string();
+    let result = Profile::profile_for(email.to_string());
+    let profile = Profile {
+      email: email,
+      role: "user".to_string(),
+      uid: 10,
+    };
+
+    assert_eq!(result, profile);
+    assert_eq!(1, 2);
+  }
+
+  #[test]
+  fn requires_a_valid_email() {
+    let email = "jack@gmail.com".to_string();
+    let result = Profile::profile_for(email.to_string());
+    let profile = Profile {
+      email: email,
+      role: "user".to_string(),
+      uid: 10,
+    };
+
+    assert_eq!(result, profile);
+  }
+
+  #[test]
+  fn it_can_encrypt_and_decrypt_profiles() {
+    let profile = Profile {
+      email: "jack@gmail.com".to_string(),
+      role: "user".to_string(),
+      uid: 10,
+    };
+
+    let encrypted_blob = profile.encrypt();
+    let decrypted_profile = Profile::from_encrypted_blob(encrypted_blob);
+
+    assert_eq!(decrypted_profile.unwrap(), profile);
   }
 }
