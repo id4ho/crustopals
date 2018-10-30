@@ -85,7 +85,7 @@ pub fn pad_bytes(bytes: &[u8], block_size: usize) -> Vec<u8> {
   byte_vec
 }
 
-fn padding_bytes(num_bytes: usize) -> Vec<u8> {
+pub fn padding_bytes(num_bytes: usize) -> Vec<u8> {
   let mut padding: Vec<u8> = vec![];
   for _i in 0..num_bytes {
     padding.push(num_bytes as u8);
