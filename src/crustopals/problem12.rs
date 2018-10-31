@@ -58,10 +58,11 @@ pub fn crack_the_aes_ecb_oracle() -> Vec<u8> {
       recovered_pt.pop();
     } else {
       let mut oracle_msg =
-        build_byte_vec(65, block_size - 1 - (recovered_pt.len() % 16));
+        build_byte_vec(65, block_size - 1 - (recovered_pt.len() % block_size));
       let ct = &aes_128_ecb_rand_key_oracle(oracle_msg.clone());
-      let blk_num = recovered_pt.len() / 16;
-      let relevant_ct_block = &ct[(blk_num * 16)..((blk_num + 1) * 16)];
+      let blk_num = recovered_pt.len() / block_size;
+      let relevant_ct_block =
+        &ct[(blk_num * block_size)..((blk_num + 1) * block_size)];
       oracle_msg.extend(recovered_pt.to_vec());
       recovered_pt
         .push(find_next_pt_byte(oracle_msg, relevant_ct_block).unwrap());
@@ -71,14 +72,13 @@ pub fn crack_the_aes_ecb_oracle() -> Vec<u8> {
 }
 
 fn find_next_pt_byte(oracle_msg: Vec<u8>, block: &[u8]) -> Result<u8, &str> {
-  println!("{:?}", oracle_msg);
-  let blk_num = oracle_msg.len() / 16;
-  for byte in 0u8..=255 {
+  let blk_num = oracle_msg.len() / block.len();
+  for byte in freq_analysis::ORDERED_PRINTABLE_ASCII.iter() {
     let mut msg = oracle_msg.clone();
-    msg.push(byte);
+    msg.push(byte.clone());
     let ct = aes_128_ecb_rand_key_oracle(msg);
-    if block == &ct[(blk_num * 16)..((blk_num + 1) * 16)] {
-      return Ok(byte);
+    if block == &ct[(blk_num * block.len())..((blk_num + 1) * block.len())] {
+      return Ok(byte.clone());
     }
   }
   Err("Failed to find byte :(")
