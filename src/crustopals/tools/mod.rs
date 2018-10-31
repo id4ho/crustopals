@@ -93,6 +93,18 @@ pub fn padding_bytes(num_bytes: usize) -> Vec<u8> {
   padding
 }
 
+pub fn strip_pkcs7_padding(
+  mut decrypted_bytes: Vec<u8>,
+) -> Result<Vec<u8>, String> {
+  let padding_byte = decrypted_bytes.last().unwrap().clone();
+  for _i in 0..padding_byte {
+    if decrypted_bytes.pop().unwrap() != padding_byte {
+      return Err("Invalid padding".to_string());
+    }
+  }
+  Ok(decrypted_bytes)
+}
+
 fn resize_key(key: &str, size: usize) -> String {
   if key.len() == size {
     return String::from(key);
@@ -233,5 +245,26 @@ mod tests {
     assert_eq!(b"abcabca".to_vec(), expand_bytes(bytes, 7));
     assert_eq!(b"abcabcab".to_vec(), expand_bytes(bytes, 8));
     assert_eq!(b"ab".to_vec(), expand_bytes(bytes, 2));
+  }
+
+  #[test]
+  fn it_strips_valid_padding_and_returns_an_ok() {
+    let valid_padding = "ICE ICE BABY\x04\x04\x04\x04".as_bytes().to_vec();
+    let result = strip_pkcs7_padding(valid_padding);
+
+    assert_eq!(Ok("ICE ICE BABY".as_bytes().to_vec()), result);
+  }
+
+  #[test]
+  fn it_returns_an_error_when_passed_invalid_padding() {
+    let invalid_padding1 = "ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec();
+    let result1 = strip_pkcs7_padding(invalid_padding1);
+
+    assert_eq!(Err("Invalid padding".to_string()), result1);
+
+    let invalid_padding2 = "ICE ICE BABY\x01\x05\x05\x05".as_bytes().to_vec();
+    let result2 = strip_pkcs7_padding(invalid_padding2);
+
+    assert_eq!(Err("Invalid padding".to_string()), result2);
   }
 }

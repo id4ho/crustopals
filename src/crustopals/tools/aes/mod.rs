@@ -64,7 +64,7 @@ pub fn decrypt_message_cbc(bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
   iv_with_ciphertext.extend(bytes);
   iv_with_ciphertext.truncate(decrypt_pre_xor.len());
   let pt_with_padding = tools::xor_bytes(&decrypt_pre_xor, &iv_with_ciphertext);
-  strip_padding(pt_with_padding)
+  tools::strip_pkcs7_padding(pt_with_padding).unwrap()
 }
 
 fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
@@ -81,14 +81,7 @@ fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
 
 pub fn decrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   let decrypted_message = decrypt_message(bytes, key);
-  strip_padding(decrypted_message)
-}
-
-fn strip_padding(mut decrypted_bytes: Vec<u8>) -> Vec<u8> {
-  let total = decrypted_bytes.len();
-  let padding = decrypted_bytes[decrypted_bytes.len() - 1] as usize;
-  decrypted_bytes.truncate(total - padding);
-  decrypted_bytes
+  tools::strip_pkcs7_padding(decrypted_message).unwrap()
 }
 
 fn encrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
