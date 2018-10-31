@@ -84,7 +84,7 @@ fn find_next_pt_byte(oracle_msg: Vec<u8>, block: &[u8]) -> Result<u8, &str> {
   Err("Failed to find byte :(")
 }
 
-fn build_byte_vec(byte: u8, size: usize) -> Vec<u8> {
+pub fn build_byte_vec(byte: u8, size: usize) -> Vec<u8> {
   iter::repeat(byte).take(size).collect::<Vec<u8>>()
 }
 
