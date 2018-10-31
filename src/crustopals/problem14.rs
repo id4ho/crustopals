@@ -58,16 +58,16 @@ pub fn crack_the_oracle() -> Vec<u8> {
 }
 
 fn find_next_pt_byte(oracle_msg: Vec<u8>, block: &[u8]) -> Result<u8, &str> {
-  for byte in 0u8..=128 {
+  for byte in freq_analysis::ORDERED_PRINTABLE_ASCII.iter() {
     let mut msg = oracle_msg.clone();
-    msg.push(byte);
+    msg.push(byte.clone());
     loop {
       let ct = aes_128_ecb_rand_prepend_oracle(msg.clone());
       match find_first_identity_blk(ct.clone()) {
         Some(blk_num) => {
           let rel_blk_num = blk_num + (oracle_msg.len() / 16);
           if block == &ct[(rel_blk_num * 16)..((rel_blk_num + 1) * 16)] {
-            return Ok(byte);
+            return Ok(byte.clone());
           }
           break;
         }
