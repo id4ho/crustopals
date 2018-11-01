@@ -17,7 +17,7 @@ pub fn cbc_encrypt(pt_bytes: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn cbc_decrypt(ct_bytes: Vec<u8>) -> Vec<u8> {
-  aes::encrypt_message_cbc(&ct_bytes, &RANDOM_KEY.to_vec(), &IV.to_vec())
+  aes::decrypt_message_cbc(&ct_bytes, &RANDOM_KEY.to_vec(), &IV.to_vec())
 }
 
 pub fn ct_decrypts_with_admin_rights(ct_bytes: Vec<u8>) -> bool {
@@ -33,7 +33,21 @@ pub fn ct_decrypts_with_admin_rights(ct_bytes: Vec<u8>) -> bool {
 }
 
 pub fn attack_cbc_oracle() -> Vec<u8> {
-  cbc_encrypt("hmm".as_bytes().to_vec())
+  // need to manipulate the third block of ct to adjust the \x00's to ; and =
+  let attack_string = "superspecialdata\x00admin\x00true";
+  let ct = cbc_encrypt(attack_string.as_bytes().to_vec());
+  let mut bitflipped_ct: Vec<u8> = vec![];
+  for (i, block) in ct.chunks(16).enumerate() {
+    if i == 2 {
+      let with_flipped_bits =
+        ";\x00\x00\x00\x00\x00=\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+      let flipped_block = xor_bytes(block, with_flipped_bits.as_bytes());
+      bitflipped_ct.extend(flipped_block);
+    } else {
+      bitflipped_ct.extend(block);
+    }
+  }
+  bitflipped_ct
 }
 
 pub fn filter_pt(bytes: Vec<u8>) -> Vec<u8> {
@@ -84,8 +98,7 @@ mod tests {
   #[test]
   fn cracks_cbc_with_padding_attack() {
     let crack_cbc_to_upgrade_to_admin = attack_cbc_oracle();
-    let result = false;
-    // let result = decrypted_includs_admin(crack_cbc_to_upgrade_to_admin);
+    let result = ct_decrypts_with_admin_rights(crack_cbc_to_upgrade_to_admin);
 
     assert_eq!(true, result);
   }
