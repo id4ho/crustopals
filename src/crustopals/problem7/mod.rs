@@ -21,7 +21,7 @@ mod tests {
   fn solve_problem_7() {
     let key = "YELLOW SUBMARINE".as_bytes();
     let aes_128_bit_decrypted =
-      aes::decrypt_message_ecb(&ciphertext_bytes(), key);
+      aes::decrypt_message_ecb(&ciphertext_bytes(), key).unwrap();
 
     assert_eq!(
       bytes_to_string(aes_128_bit_decrypted),

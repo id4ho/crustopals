@@ -57,14 +57,18 @@ pub fn encrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   encrypted_message
 }
 
-pub fn decrypt_message_cbc(bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+pub fn decrypt_message_cbc(
+  bytes: &[u8],
+  key: &[u8],
+  iv: &[u8],
+) -> Result<Vec<u8>, String> {
   let decrypt_pre_xor = decrypt_message(bytes, key);
   let mut iv_with_ciphertext: Vec<u8> = vec![];
   iv_with_ciphertext.extend(iv.to_vec());
   iv_with_ciphertext.extend(bytes);
   iv_with_ciphertext.truncate(decrypt_pre_xor.len());
   let pt_with_padding = tools::xor_bytes(&decrypt_pre_xor, &iv_with_ciphertext);
-  tools::strip_pkcs7_padding(pt_with_padding).unwrap()
+  tools::strip_pkcs7_padding(pt_with_padding)
 }
 
 fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
@@ -79,9 +83,12 @@ fn decrypt_message(bytes: &[u8], key: &[u8]) -> Vec<u8> {
   decrypted_message
 }
 
-pub fn decrypt_message_ecb(bytes: &[u8], key: &[u8]) -> Vec<u8> {
+pub fn decrypt_message_ecb(
+  bytes: &[u8],
+  key: &[u8],
+) -> Result<Vec<u8>, String> {
   let decrypted_message = decrypt_message(bytes, key);
-  tools::strip_pkcs7_padding(decrypted_message).unwrap()
+  tools::strip_pkcs7_padding(decrypted_message)
 }
 
 fn encrypt_block(mut state: StateArray, keys: &KeySchedule) -> StateArray {
@@ -210,7 +217,10 @@ mod tests {
       base64::decode("nRGOqUe3iBURUPUe5NjYJTSrsoTAS1bzHKzpdPDcoFg=").unwrap();
     let aes_128_bit_decrypted = decrypt_message_cbc(&ciphertext, key, &iv);
 
-    assert_eq!(aes_128_bit_decrypted, "here is the mess".as_bytes());
+    assert_eq!(
+      aes_128_bit_decrypted.unwrap(),
+      "here is the mess".as_bytes()
+    );
   }
 
   #[test]
@@ -229,7 +239,7 @@ mod tests {
     let key = "YELLOW SUBMARINE".as_bytes();
     let ciphertext =
       base64::decode("nRGOqUe3iBURUPUe5NjYJWD6NnB+RfSZ26DyW5IjAaU=").unwrap();
-    let aes_128_bit_decrypted = decrypt_message_ecb(&ciphertext, key);
+    let aes_128_bit_decrypted = decrypt_message_ecb(&ciphertext, key).unwrap();
 
     assert_eq!(aes_128_bit_decrypted, "here is the mess".as_bytes());
   }
@@ -241,7 +251,7 @@ mod tests {
       "69c4e0d86a7b0430d8cdb78070b4c55a954f64f2e4e86e9eee82d20216684899",
     ).unwrap();
     let plaintext = hex::decode("00112233445566778899aabbccddeeff").unwrap();
-    let aes_128_bit_decrypted = decrypt_message_ecb(&ciphertext, &key);
+    let aes_128_bit_decrypted = decrypt_message_ecb(&ciphertext, &key).unwrap();
     let aes_128_bit_encrypted = encrypt_message_ecb(&plaintext, &key);
 
     assert_eq!(ciphertext, aes_128_bit_encrypted);

@@ -67,7 +67,7 @@ impl Profile {
   pub fn from_encrypted_blob(encrypted_qs: Vec<u8>) -> Result<Profile, String> {
     let decrypted_qs =
       aes::decrypt_message_ecb(&encrypted_qs, &RANDOM_KEY.to_vec());
-    Profile::from_query_string(bytes_to_string(decrypted_qs))
+    Profile::from_query_string(bytes_to_string(decrypted_qs.unwrap()))
   }
 }
 

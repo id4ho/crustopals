@@ -18,6 +18,7 @@ pub fn cbc_encrypt(pt_bytes: Vec<u8>) -> Vec<u8> {
 
 pub fn cbc_decrypt(ct_bytes: Vec<u8>) -> Vec<u8> {
   aes::decrypt_message_cbc(&ct_bytes, &RANDOM_KEY.to_vec(), &IV.to_vec())
+    .unwrap()
 }
 
 pub fn ct_decrypts_with_admin_rights(ct_bytes: Vec<u8>) -> bool {

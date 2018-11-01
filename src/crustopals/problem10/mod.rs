@@ -24,7 +24,7 @@ mod tests {
     let aes_decrypted = aes::decrypt_message_cbc(&ciphertext_bytes(), key, &iv);
 
     assert_eq!(
-      bytes_to_string(aes_decrypted),
+      bytes_to_string(aes_decrypted.unwrap()),
       fs::read_to_string("src/crustopals/problem6/solution.txt").unwrap() // same solution as 6
     );
   }
