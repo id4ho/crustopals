@@ -4,6 +4,8 @@ extern crate hex;
 pub mod aes;
 pub mod freq_analysis;
 
+use std::iter;
+
 // TODO: create struct for hex so as to be distinct from String.
 
 pub fn mult_bytes(mut a: u8, mut b: u8) -> u8 {
@@ -86,23 +88,26 @@ pub fn pad_bytes(bytes: &[u8], block_size: usize) -> Vec<u8> {
 }
 
 pub fn padding_bytes(num_bytes: usize) -> Vec<u8> {
-  let mut padding: Vec<u8> = vec![];
-  for _i in 0..num_bytes {
-    padding.push(num_bytes as u8);
-  }
-  padding
+  build_byte_vec(num_bytes as u8, num_bytes)
+}
+
+pub fn build_byte_vec(byte: u8, size: usize) -> Vec<u8> {
+  iter::repeat(byte).take(size).collect::<Vec<u8>>()
 }
 
 pub fn strip_pkcs7_padding(
   mut decrypted_bytes: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
   let padding_byte = decrypted_bytes.last().unwrap().clone();
-  for _i in 0..padding_byte {
-    if decrypted_bytes.pop().unwrap() != padding_byte {
-      return Err("Invalid padding".to_string());
+  if padding_byte > 0 && padding_byte < 17 {
+    for _i in 0..padding_byte {
+      if decrypted_bytes.pop().unwrap() != padding_byte {
+        return Err("Invalid padding".to_string());
+      }
     }
+    return Ok(decrypted_bytes);
   }
-  Ok(decrypted_bytes)
+  Err("Invalid padding".to_string())
 }
 
 fn resize_key(key: &str, size: usize) -> String {
@@ -257,6 +262,11 @@ mod tests {
 
   #[test]
   fn it_returns_an_error_when_passed_invalid_padding() {
+    let invalid_padding0 = "ICE ICE BABY\x03\x03\x03\x00".as_bytes().to_vec();
+    let result0 = strip_pkcs7_padding(invalid_padding0);
+
+    assert_eq!(Err("Invalid padding".to_string()), result0);
+
     let invalid_padding1 = "ICE ICE BABY\x01\x02\x03\x04".as_bytes().to_vec();
     let result1 = strip_pkcs7_padding(invalid_padding1);
 

@@ -2,7 +2,6 @@ extern crate base64;
 
 use crustopals::problem11;
 use crustopals::tools::*;
-use std::iter;
 
 lazy_static! {
   pub static ref RANDOM_KEY: Vec<u8> = aes::generate_key();
@@ -82,10 +81,6 @@ fn find_next_pt_byte(oracle_msg: Vec<u8>, block: &[u8]) -> Result<u8, &str> {
     }
   }
   Err("Failed to find byte :(")
-}
-
-pub fn build_byte_vec(byte: u8, size: usize) -> Vec<u8> {
-  iter::repeat(byte).take(size).collect::<Vec<u8>>()
 }
 
 #[cfg(test)]
