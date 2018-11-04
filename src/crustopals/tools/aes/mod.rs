@@ -9,6 +9,7 @@ use self::byte_operations::*;
 use self::key_schedule::KeySchedule;
 use self::state_array::StateArray;
 use self::word::Word;
+use crustopals::byteorder::{LittleEndian, WriteBytesExt};
 use crustopals::tools;
 
 pub fn generate_key() -> Vec<u8> {
@@ -21,6 +22,38 @@ pub fn generate_iv() -> Vec<u8> {
 
 pub fn generate_rand_bytes(length: usize) -> Vec<u8> {
   (0..length).map(|_| rand::random::<u8>()).collect()
+}
+
+pub fn encrypt_ctr(bytes: &[u8], key: &[u8], nonce: &[u8; 8]) -> Vec<u8> {
+  ctr_prf(&bytes, &key, &nonce)
+}
+
+pub fn decrypt_ctr(bytes: &[u8], key: &[u8], nonce: &[u8; 8]) -> Vec<u8> {
+  ctr_prf(&bytes, &key, &nonce)
+}
+
+fn ctr_prf(bytes: &[u8], key: &[u8], nonce: &[u8; 8]) -> Vec<u8> {
+  tools::xor_bytes(&generate_ctr_stream(&key, &nonce, bytes.len()), bytes)
+}
+
+pub fn generate_ctr_stream(key: &[u8], nonce: &[u8; 8], len: usize) -> Vec<u8> {
+  let round_keys = key_schedule(key);
+  let mut stream: Vec<u8> = vec![];
+  let mut num_blocks = len / 16;
+  if len % 16 != 0 {
+    num_blocks += 1;
+  }
+  for i in 0..num_blocks {
+    let mut counter: Vec<u8> = vec![];
+    counter.write_u64::<LittleEndian>(i as u64).unwrap();
+    let block = [&nonce[..], &counter[..]].concat();
+    let state_array = StateArray::new(&block);
+    let encrypted_block = encrypt_block(state_array, &round_keys);
+    let result = encrypted_block.to_u8();
+    stream.extend(result);
+  }
+  stream.truncate(len);
+  stream
 }
 
 pub fn encrypt_message_cbc(bytes: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
@@ -171,6 +204,31 @@ mod tests {
   fn panics_with_wrong_keysize() {
     let key = b"Hello world";
     key_schedule(key);
+  }
+
+  #[test]
+  fn it_can_generate_ctr_streams() {
+    let key = "YELLOW SUBMARINE".as_bytes();
+    let nonce = [0u8; 8];
+    let ctr1 = vec![0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    let ctr2 = vec![1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    let msg = [&nonce[..], &ctr1[..], &nonce[..], &ctr2[..]].concat();
+    let ecb_mode_enc = encrypt_message_ecb(&msg, &key);
+    let ctr_stream = generate_ctr_stream(&key, &nonce, msg.len());
+
+    assert_eq!(ctr_stream[..], ecb_mode_enc[..32]);
+  }
+
+  #[test]
+  fn it_can_decrypt_messages_in_ctr_mode() {
+    let key = "YELLOW SUBMARINE".as_bytes();
+    let nonce = [0u8; 8];
+    let ctr_encrypted_msg = base64::decode("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==").unwrap();
+    let ctr_decrypted = decrypt_ctr(&ctr_encrypted_msg, &key, &nonce);
+    assert_eq!(
+      tools::bytes_to_string(ctr_decrypted),
+      "Yo, VIP Let's kick it Ice, Ice, baby Ice, Ice, baby "
+    );
   }
 
   #[test]
