@@ -1,3 +1,4 @@
+extern crate base64;
 extern crate byteorder;
 extern crate rand;
 
@@ -17,4 +18,5 @@ pub mod tools;
 // pub mod problem13;
 // pub mod problem14;
 // pub mod problem16;
-pub mod problem17;
+// pub mod problem17;
+pub mod problem19;
