@@ -24,19 +24,19 @@ pub fn generate_rand_bytes(length: usize) -> Vec<u8> {
   (0..length).map(|_| rand::random::<u8>()).collect()
 }
 
-pub fn encrypt_ctr(bytes: &[u8], key: &[u8], nonce: &[u8; 8]) -> Vec<u8> {
+pub fn encrypt_ctr(bytes: &[u8], key: &[u8], nonce: &[u8]) -> Vec<u8> {
   ctr_prf(&bytes, &key, &nonce)
 }
 
-pub fn decrypt_ctr(bytes: &[u8], key: &[u8], nonce: &[u8; 8]) -> Vec<u8> {
+pub fn decrypt_ctr(bytes: &[u8], key: &[u8], nonce: &[u8]) -> Vec<u8> {
   ctr_prf(&bytes, &key, &nonce)
 }
 
-fn ctr_prf(bytes: &[u8], key: &[u8], nonce: &[u8; 8]) -> Vec<u8> {
+fn ctr_prf(bytes: &[u8], key: &[u8], nonce: &[u8]) -> Vec<u8> {
   tools::xor_bytes(&generate_ctr_stream(&key, &nonce, bytes.len()), bytes)
 }
 
-pub fn generate_ctr_stream(key: &[u8], nonce: &[u8; 8], len: usize) -> Vec<u8> {
+pub fn generate_ctr_stream(key: &[u8], nonce: &[u8], len: usize) -> Vec<u8> {
   let round_keys = key_schedule(key);
   let mut stream: Vec<u8> = vec![];
   let mut num_blocks = len / 16;
@@ -209,9 +209,9 @@ mod tests {
   #[test]
   fn it_can_generate_ctr_streams() {
     let key = "YELLOW SUBMARINE".as_bytes();
-    let nonce = [0u8; 8];
-    let ctr1 = vec![0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
-    let ctr2 = vec![1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    let nonce = vec![0u8; 8];
+    let ctr1 = vec![0u8; 8];
+    let ctr2 = vec![1u8; 8];
     let msg = [&nonce[..], &ctr1[..], &nonce[..], &ctr2[..]].concat();
     let ecb_mode_enc = encrypt_message_ecb(&msg, &key);
     let ctr_stream = generate_ctr_stream(&key, &nonce, msg.len());
