@@ -12,12 +12,8 @@ pub fn break_vigeneres(bytes: &Vec<u8>) -> String {
   let mut possible_solutions: Vec<(f32, String)> = vec![];
 
   for keysize in most_likely_keysizes {
-    let key = find_likely_key(&bytes, keysize);
-    let expanded_key = tools::expand_bytes(&key, bytes.len());
-    let plaintext_bytes = xor_bytes(bytes, &expanded_key);
-    let possible_pt = tools::bytes_to_string(plaintext_bytes);
-    let english_distance = freq_analysis::english_distance(&possible_pt);
-
+    let (english_distance, possible_pt) =
+      possible_solution_for_keysize(&bytes, keysize);
     possible_solutions.push((english_distance, possible_pt));
   }
 
@@ -26,6 +22,18 @@ pub fn break_vigeneres(bytes: &Vec<u8>) -> String {
     .min_by(|(d1, _), (d2, _)| d1.partial_cmp(d2).unwrap_or(Ordering::Equal))
     .unwrap()
     .1
+}
+
+pub fn possible_solution_for_keysize(
+  bytes: &Vec<u8>,
+  keysize: u32,
+) -> (f32, String) {
+  let key = find_likely_key(&bytes, keysize);
+  let expanded_key = tools::expand_bytes(&key, bytes.len());
+  let plaintext_bytes = xor_bytes(bytes, &expanded_key);
+  let possible_pt = tools::bytes_to_string(plaintext_bytes);
+  let english_distance = freq_analysis::english_distance(&possible_pt);
+  (english_distance, possible_pt)
 }
 
 fn find_likely_key(bytes: &[u8], keysize: u32) -> Vec<u8> {
