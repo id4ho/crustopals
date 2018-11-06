@@ -4,7 +4,7 @@ use std::cmp;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-pub fn ciphertexts() -> Vec<Vec<u8>> {
+pub fn ciphertexts(filepath: String) -> Vec<Vec<u8>> {
   // using randomly genreated keys and nonces, but hard coding for purpose of
   // exercise.
   let key: Vec<u8> = vec![
@@ -12,7 +12,7 @@ pub fn ciphertexts() -> Vec<Vec<u8>> {
   ]; // tools::aes::generate_key();
   let nonce: Vec<u8> = vec![144, 226, 242, 95, 221, 181, 68, 198]; // tools::aes::generate_rand_bytes(8);
   let mut ciphertexts: Vec<Vec<u8>> = vec![];
-  let file = File::open("src/crustopals/problem19/19.txt").unwrap();
+  let file = File::open(filepath).unwrap();
   let reader = BufReader::new(file);
   for l in reader.lines() {
     let line = l.unwrap();
@@ -102,7 +102,8 @@ mod tests {
 
   #[test]
   fn scratch_test_for_piecemeal_attack() {
-    let ciphertexts = ciphertexts();
+    let ciphertexts =
+      ciphertexts("src/crustopals/problem19/19.txt".to_string());
     // try_guess(ciphertexts);
     targeted_guess(ciphertexts);
     assert_eq!(1, 2);
@@ -120,7 +121,8 @@ mod tests {
     subs.insert(30, vec![17, 156, 238, 218, 48]);
     subs.insert(35, vec![101, 128, 43]);
 
-    let ciphertexts = ciphertexts();
+    let ciphertexts =
+      ciphertexts("src/crustopals/problem19/19.txt".to_string());
     let mut renderable_ciphertexts = ciphertexts.clone();
     for renderable_ct in renderable_ciphertexts.iter_mut() {
       for i in 0..renderable_ct.len() {
