@@ -3,6 +3,7 @@ extern crate hex;
 
 pub mod aes;
 pub mod freq_analysis;
+pub mod mt_prng;
 
 use std::iter;
 
