@@ -22,6 +22,16 @@ impl MT19937 {
     prng
   }
 
+  pub fn from_state(vec_state: Vec<u32>) -> MT19937 {
+    let mut state = [0u32; N];
+    state.copy_from_slice(&vec_state[..]);
+    MT19937 {
+      seed: 0, // doesn't matter
+      state,
+      mt_iter: N as u32,
+    }
+  }
+
   fn initialize(&mut self) {
     self.state[0] = self.seed;
     for i in 1..N {
