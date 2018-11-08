@@ -211,7 +211,7 @@ mod tests {
     let key = "YELLOW SUBMARINE".as_bytes();
     let nonce = vec![0u8; 8];
     let ctr1 = vec![0u8; 8];
-    let ctr2 = vec![1u8; 8];
+    let ctr2 = vec![1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
     let msg = [&nonce[..], &ctr1[..], &nonce[..], &ctr2[..]].concat();
     let ecb_mode_enc = encrypt_message_ecb(&msg, &key);
     let ctr_stream = generate_ctr_stream(&key, &nonce, msg.len());
