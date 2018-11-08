@@ -33,21 +33,24 @@ impl MT19937 {
     }
   }
 
+  pub fn temper(mut val: u32) -> u32 {
+    val ^= val >> 11;
+    val ^= val << 7 & 0x9d2c5680;
+    val ^= val << 15 & 0xefc60000;
+    val ^= val >> 18;
+
+    val
+  }
+
   pub fn get_32_bits(&mut self) -> u32 {
     if self.mt_iter >= N as u32 {
       self.twist();
     }
 
-    let mut result = self.state[self.mt_iter as usize];
+    let result = self.state[self.mt_iter as usize];
     self.mt_iter += 1;
 
-    // Tempering
-    result ^= result >> 11;
-    result ^= result << 7 & 0x9d2c5680;
-    result ^= result << 15 & 0xefc60000;
-    result ^= result >> 18;
-
-    result
+    MT19937::temper(result)
   }
 
   fn twist(&mut self) {
