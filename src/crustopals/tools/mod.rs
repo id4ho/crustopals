@@ -6,8 +6,16 @@ pub mod freq_analysis;
 pub mod mt_prng;
 
 use std::iter;
+use std::time::SystemTime;
 
 // TODO: create struct for hex so as to be distinct from String.
+
+pub fn system_time_as_u32() -> u32 {
+  SystemTime::now()
+    .duration_since(SystemTime::UNIX_EPOCH)
+    .unwrap()
+    .as_secs() as u32
+}
 
 pub fn mult_bytes(mut a: u8, mut b: u8) -> u8 {
   let mut p: u8 = 0;
