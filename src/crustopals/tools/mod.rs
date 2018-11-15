@@ -34,6 +34,26 @@ pub fn mult_bytes(mut a: u8, mut b: u8) -> u8 {
   p
 }
 
+pub fn word_to_bytes(word: u32) -> [u8; 4] {
+  let mut byte_array = [0u8; 4];
+  byte_array[0] = (word >> 24) as u8;
+  byte_array[1] = (word >> 16) as u8;
+  byte_array[2] = (word >> 8) as u8;
+  byte_array[3] = word as u8;
+  byte_array
+}
+
+pub fn bytes_to_word(bytes: &[u8]) -> u32 {
+  let mut word: u32 = 0;
+  for (i, byte) in bytes.iter().enumerate() {
+    word |= *byte as u32;
+    if i != 3 {
+      word <<= 8;
+    }
+  }
+  word
+}
+
 pub fn hex_to_b64(hex: &str) -> String {
   let decoded_hex = hex::decode(hex).expect("Invalid Hex!");
   base64::encode(&decoded_hex)
@@ -285,5 +305,31 @@ mod tests {
     let result2 = strip_pkcs7_padding(invalid_padding2);
 
     assert_eq!(Err("Invalid padding".to_string()), result2);
+  }
+
+  #[test]
+  fn it_converts_words_to_byte_arrays() {
+    let word1 = 0xFFFFFFFF;
+    let bytes1 = word_to_bytes(word1);
+
+    assert_eq!(bytes1, [255u8, 255u8, 255u8, 255u8]);
+
+    let word2 = 0x10A5b832;
+    let bytes2 = word_to_bytes(word2);
+
+    assert_eq!(bytes2, [16u8, 165u8, 184u8, 50u8]);
+  }
+
+  #[test]
+  fn it_converts_byte_arrays_to_words() {
+    let bytes1 = [255u8, 255u8, 255u8, 255u8];
+    let word1 = bytes_to_word(&bytes1);
+
+    assert_eq!(word1, 0xFFFFFFFF);
+
+    let bytes2 = [16u8, 165u8, 184u8, 50u8];
+    let word2 = bytes_to_word(&bytes2);
+
+    assert_eq!(word2, 0x10A5b832);
   }
 }
