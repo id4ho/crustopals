@@ -198,12 +198,13 @@ mod tests {
   extern crate hex;
 
   use super::*;
+  use std::panic;
 
   #[test]
-  #[should_panic(expected = "Wrong size key. Must be 16 bytes.")]
   fn panics_with_wrong_keysize() {
     let key = b"Hello world";
-    key_schedule(key);
+    let result = panic::catch_unwind(|| key_schedule(key));
+    assert!(result.is_err());
   }
 
   #[test]
