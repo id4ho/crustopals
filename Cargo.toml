@@ -9,3 +9,9 @@ rand = "*"
 hex = "0.3.1"
 base64 = "0.9.3"
 lazy_static = "1.1.0"
+
+[dependencies.sha1]
+# git = "https://github.com/id4ho/rust-sha1"
+# branch = "crustopals"
+features = ["std"]
+path = "../rust-sha1"

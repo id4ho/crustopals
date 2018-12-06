@@ -2,13 +2,12 @@ extern crate base64;
 extern crate hex;
 
 pub mod aes;
+pub mod authentication;
 pub mod freq_analysis;
 pub mod mt_prng;
 
 use std::iter;
 use std::time::SystemTime;
-
-// TODO: create struct for hex so as to be distinct from String.
 
 pub fn system_time_as_u32() -> u32 {
   SystemTime::now()
