@@ -2,8 +2,7 @@ extern crate sha1;
 
 use crustopals::tools::*;
 
-pub fn generate_sha1_padding(msg: &str) -> Vec<u8> {
-  let bytes = msg.as_bytes();
+pub fn generate_sha1_padding(bytes: &[u8]) -> Vec<u8> {
   let num_bytes = bytes.len();
   let extra_bytes = num_bytes % 64;
   let mut last_blocks = [0u8; 128]; 
@@ -37,32 +36,32 @@ pub fn generate_sha1_padding(msg: &str) -> Vec<u8> {
   }
 }
 
-pub fn forge_mac(mac: &str, msg: &str, forged_msg: &str) -> (String, String) {
-  let fake_secret = "0".repeat(16); // "guess" of 16 bytes
-  let mut full_msg = String::new();
-  full_msg.push_str(&fake_secret);
-  full_msg.push_str(msg);
-  println!("full_msg {:?}", full_msg);
+pub fn forge_mac(mac: &[u8], msg: &[u8], forged_bytes: &[u8]) -> (Vec<u8>, Vec<u8>) {
+  let fake_secret = [0u8; 16]; // "guess" of 16 bytes
+  let mut full_msg: Vec<u8> = vec![];
+  full_msg.extend(fake_secret.to_vec());
+  full_msg.extend(msg.to_vec());
   let padding = generate_sha1_padding(&full_msg);
 
-  let blks_len: u64 = (full_msg.as_bytes().len() as u64 / 64) * 64;
-  let padding_len: u64 = padding.len() as u64;
-  let len: u64 = blks_len + padding_len; 
+  let blks_len = (full_msg.len() as u64 / 64) * 64;
+  let padding_len = padding.len() as u64;
 
-  let forged_bytes = forged_msg.as_bytes().to_vec();
-  let mut sha1 = sha1::Sha1::new_with_state_and_len(sha1_state_from_digest(mac), len);
+  let mut forged_msg: Vec<u8> = vec![];
+  forged_msg.extend(&full_msg[16..blks_len as usize].to_vec());
+  forged_msg.extend(padding);
+
+
+  let sha1_state = sha1_state_from_digest(mac);
+  let length = blks_len + padding_len;
+  let mut sha1 = sha1::Sha1::new_with_state_and_len(sha1_state, length);
   sha1.update(&forged_bytes);
-  let forged_sha = sha1.hexdigest();
+  let forged_sha = hex::decode(sha1.hexdigest()).unwrap();
 
-  let mut msg_with_padding = msg.to_string();
-  msg_with_padding.push_str(&bytes_to_string(padding));
-  println!("msg_with_padding {:?}", msg_with_padding);
-  println!("msg_with_padding.len() {}", msg_with_padding.len());
-  (forged_sha, msg_with_padding)
+  forged_msg.extend(forged_bytes.to_vec());
+  (forged_sha, forged_msg)
 }
 
-fn sha1_state_from_digest(digest: &str) -> sha1::Sha1State {
-  let digest_bytes: Vec<u8> = hex::decode(digest).unwrap();
+fn sha1_state_from_digest(digest_bytes: &[u8]) -> sha1::Sha1State {
   let mut state = [0u32; 5];
   for i in 0..5 {
     let off = i * 4;
@@ -77,6 +76,7 @@ fn sha1_state_from_digest(digest: &str) -> sha1::Sha1State {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crustopals::query_string;
 
   #[test]
   fn it_generates_padding_matching_the_sha1_lib() {
@@ -98,24 +98,23 @@ mod tests {
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 192,
     ];
 
-    assert_eq!(generate_sha1_padding(quote1), padding1);
-    assert_eq!(generate_sha1_padding(quote2), padding2);
+    assert_eq!(generate_sha1_padding(quote1.as_bytes()), padding1);
+    assert_eq!(generate_sha1_padding(quote2.as_bytes()), padding2);
   }
 
   #[test]
   fn it_can_forge_a_valid_mac() {
-    let secret_bytes: Vec<u8> = aes::generate_key(); //random 16 byte key
-    let key = bytes_to_string(secret_bytes);
-    let msg = "comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon".to_string();
-    let legit_mac = authentication::sha1_mac(&key, &msg);
-    let desired_append = ";admin=true";
+    let secret_key: Vec<u8> = aes::generate_key(); //random 16 byte key
+    let msg_bytes = "comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon".as_bytes();
+    let legit_mac = authentication::sha1_mac(&secret_key, &msg_bytes);
+    let desired_append_bytes = ";admin=true;".as_bytes();
 
-    let (forged_mac, mut forged_msg) =
-      forge_mac(&legit_mac, &msg, desired_append); 
+    let (forged_mac, forged_msg) =
+      forge_mac(&legit_mac, &msg_bytes, &desired_append_bytes); 
 
-    forged_msg.push_str(desired_append);
-    assert_ne!(forged_mac, legit_mac);
-    // need to add glue padding between original message and forged bits
-    assert!(authentication::valid_sha1_mac(&key, &forged_msg, &forged_mac));
+    assert!(query_string::has_admin_rights(&forged_msg));
+    assert!(
+      authentication::valid_sha1_mac(&secret_key, &forged_msg, forged_mac)
+    );
   }
 }

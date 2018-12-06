@@ -49,7 +49,7 @@ pub fn cbc_decrypts_with_admin_rights(
   ct_bytes: &[u8],
 ) -> bool {
   let decrypted: Vec<u8> = cbc_decrypt(key, iv, ct_bytes);
-  has_admin_rights(decrypted)
+  has_admin_rights(&decrypted)
 }
 
 pub fn ctr_decrypts_with_admin_rights(
@@ -58,13 +58,14 @@ pub fn ctr_decrypts_with_admin_rights(
   ct_bytes: &[u8],
 ) -> bool {
   let decrypted: Vec<u8> = ctr_decrypt(key, nonce, ct_bytes);
-  has_admin_rights(decrypted)
+  has_admin_rights(&decrypted)
 }
 
-fn has_admin_rights(decrypted: Vec<u8>) -> bool {
+pub fn has_admin_rights(decrypted: &[u8]) -> bool {
   let admin_str = ";admin=true;".to_string();
+
   let admin_bytes = admin_str.as_bytes();
-  for i in 0..(decrypted.len() - admin_bytes.len()) {
+  for i in 0..=(decrypted.len() - admin_bytes.len()) {
     if decrypted[i..(i + admin_bytes.len())] == admin_bytes[..] {
       return true;
     }
