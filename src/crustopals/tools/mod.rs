@@ -2,6 +2,7 @@ extern crate base64;
 extern crate hex;
 
 pub mod aes;
+pub mod authentication;
 pub mod freq_analysis;
 pub mod mt_prng;
 
