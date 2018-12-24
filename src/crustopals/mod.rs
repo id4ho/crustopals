@@ -29,4 +29,5 @@ pub mod tools;
 // pub mod problem26;
 // pub mod problem27;
 // pub mod problem29;
-pub mod problem30;
+// pub mod problem30;
+pub mod problem31;
