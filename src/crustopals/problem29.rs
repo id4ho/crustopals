@@ -4,7 +4,8 @@ pub fn generate_sha1_padding(bytes: &[u8]) -> Vec<u8> {
   let num_bytes = bytes.len();
   let extra_bytes = num_bytes % 64;
   let mut last_blocks = [0u8; 128];
-  last_blocks[0..extra_bytes].clone_from_slice(&bytes[(num_bytes - extra_bytes)..]);
+  last_blocks[0..extra_bytes]
+    .clone_from_slice(&bytes[(num_bytes - extra_bytes)..]);
   last_blocks[extra_bytes] = 0x80u8;
   let num_bits: u64 = num_bytes as u64 * 8;
   let extra = [
@@ -26,7 +27,11 @@ pub fn generate_sha1_padding(bytes: &[u8]) -> Vec<u8> {
   }
 }
 
-pub fn forge_mac(mac: &[u8], msg: &[u8], forged_bytes: &[u8]) -> (Vec<u8>, Vec<u8>) {
+pub fn forge_mac(
+  mac: &[u8],
+  msg: &[u8],
+  forged_bytes: &[u8],
+) -> (Vec<u8>, Vec<u8>) {
   let fake_secret = [0u8; 16]; // "guess" of 16 bytes
   let mut full_msg: Vec<u8> = vec![];
   full_msg.extend(fake_secret.to_vec());
@@ -39,7 +44,6 @@ pub fn forge_mac(mac: &[u8], msg: &[u8], forged_bytes: &[u8]) -> (Vec<u8>, Vec<u
   let mut forged_msg: Vec<u8> = vec![];
   forged_msg.extend(&full_msg[16..blks_len as usize].to_vec());
   forged_msg.extend(padding);
-
 
   let sha1_state = sha1_state_from_digest(mac);
   let length = blks_len + padding_len;
@@ -104,8 +108,10 @@ mod tests {
       forge_mac(&legit_mac, &msg_bytes, &desired_append_bytes);
 
     assert!(query_string::has_admin_rights(&forged_msg));
-    assert!(
-      authentication::valid_sha1_mac(&secret_key, &forged_msg, forged_mac)
-    );
+    assert!(authentication::valid_sha1_mac(
+      &secret_key,
+      &forged_msg,
+      forged_mac
+    ));
   }
 }
