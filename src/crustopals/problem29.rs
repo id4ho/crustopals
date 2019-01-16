@@ -6,7 +6,7 @@ pub fn generate_sha1_padding(bytes: &[u8]) -> Vec<u8> {
   let mut last_blocks = [0u8; 128];
   last_blocks[0..extra_bytes]
     .clone_from_slice(&bytes[(num_bytes - extra_bytes)..]);
-  last_blocks[extra_bytes] = 0x80u8;
+  last_blocks[extra_bytes] = 0x80u8; // 10000000 in binary
   let num_bits: u64 = num_bytes as u64 * 8;
   let extra = [
     (num_bits >> 56) as u8,
@@ -36,14 +36,23 @@ pub fn forge_mac(
   let mut full_msg: Vec<u8> = vec![];
   full_msg.extend(fake_secret.to_vec());
   full_msg.extend(msg.to_vec());
+  // The below returns the last block that was run through the hashing algorithm
+  // inclusive of padding. This should always be a round 64 bytes but it may be
+  // 64 and it may be 128 depending if there was enough room to add the 1 bit
+  // and the 8 byte length at the end (i.e. if the original message ran up
+  // past 56 bytes but below 64 it would need almost an entire block of null
+  // byte padding)
   let padding = generate_sha1_padding(&full_msg);
-
   let blks_len = (full_msg.len() as u64 / 64) * 64;
   let padding_len = padding.len() as u64;
 
   let mut forged_msg: Vec<u8> = vec![];
-  forged_msg.extend(&full_msg[16..blks_len as usize].to_vec());
-  forged_msg.extend(padding);
+  if blks_len > 0 {
+    forged_msg.extend(&full_msg[fake_secret.len()..blks_len as usize].to_vec());
+    forged_msg.extend(padding);
+  } else {
+    forged_msg.extend(&padding[fake_secret.len()..].to_vec());
+  }
 
   let sha1_state = sha1_state_from_digest(mac);
   let length = blks_len + padding_len;
@@ -77,6 +86,7 @@ mod tests {
   fn it_generates_padding_matching_the_sha1_lib() {
     let quote1 = "Thunder rolled. It rolled a 6";
     let quote2 = "Real stupidity beats artificial intelligence every time.";
+    let quote3 = "When a man says he does not want to speak of something he usually means he can think of nothing else.";
     let padding1: Vec<u8> = vec![
       84, 104, 117, 110, 100, 101, 114, 32, 114, 111, 108, 108, 101, 100, 46,
       32, 73, 116, 32, 114, 111, 108, 108, 101, 100, 32, 97, 32, 54, 128, 0, 0,
@@ -92,9 +102,16 @@ mod tests {
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 192,
     ];
+    let padding3: Vec<u8> = vec![
+      121, 32, 109, 101, 97, 110, 115, 32, 104, 101, 32, 99, 97, 110, 32, 116,
+      104, 105, 110, 107, 32, 111, 102, 32, 110, 111, 116, 104, 105, 110, 103,
+      32, 101, 108, 115, 101, 46, 128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 40,
+    ];
 
     assert_eq!(generate_sha1_padding(quote1.as_bytes()), padding1);
     assert_eq!(generate_sha1_padding(quote2.as_bytes()), padding2);
+    assert_eq!(generate_sha1_padding(quote3.as_bytes()), padding3);
   }
 
   #[test]
